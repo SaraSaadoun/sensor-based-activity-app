@@ -3,9 +3,15 @@ import { StyleSheet, Button, View, Text } from "react-native";
 import { Accelerometer, Gyroscope, AccelerometerMeasurement, GyroscopeMeasurement } from "expo-sensors";
 import { StatusBar } from "expo-status-bar";
 
+
 export default function Sensors() {
-    const [accReadings, setAccReadings] = useState<Array<AccelerometerMeasurement>>([]);
-    const [gyroReadings, setGyroReadings] = useState<Array<GyroscopeMeasurement>>([]);
+    const [accReadings, setAccReadings] = useState<Array<AccelerometerMeasurement>>(
+        Array.from({ length: 150 }, () => ({ x: 0, y: 0, z: 0 }))
+    );
+    const [gyroReadings, setGyroReadings] = useState<Array<GyroscopeMeasurement>>(
+        Array.from({ length: 150 }, () => ({ x: 0, y: 0, z: 0 }))
+    );
+    const [prediction, setPrediction] = useState<string>("");
 
     useEffect(() => {
         const subscription = Accelerometer.addListener(accelerometerData => {
@@ -28,9 +34,8 @@ export default function Sensors() {
         const data = { gyroData: last150GyroReadings, accData: last150AccReadings };
         
         try {            
-            console.log("start")
-            console.log(data)
-
+            console.log("start predicting")
+            // console.log(data)
             const response = await fetch(process.env.DETECTION_MODEL_API, {
                 method: 'POST',
                 headers: {
@@ -38,11 +43,10 @@ export default function Sensors() {
                 },
                 body: JSON.stringify(data),
             });
-            console.log("res", response)
             const prediction = await response.text();
-            console.log("end")
+            setPrediction(prediction);
+            console.log("end prediction")
             console.log('Prediction:', prediction);
-            // Now, update the UI to display the prediction
         } catch (error) {
             console.error('Error:', error);
         }
@@ -50,18 +54,23 @@ export default function Sensors() {
 
     return (
         <View style={styles.container}>
-            <Text>Gyroscope</Text>
-            <Text>x: {gyroReadings.length > 0 ? gyroReadings[gyroReadings.length - 1].x : 0}</Text>
-            <Text>y: {gyroReadings.length > 0 ? gyroReadings[gyroReadings.length - 1].y : 0}</Text>
-            <Text>z: {gyroReadings.length > 0 ? gyroReadings[gyroReadings.length - 1].z : 0}</Text>
+            <Text style={styles.title}>Gyroscope</Text>
+            <View style={styles.readingsContainer}>
+                <Text style={styles.reading}>x: {gyroReadings.length > 0 ? gyroReadings[gyroReadings.length - 1].x : 0}</Text>
+                <Text style={styles.reading}>y: {gyroReadings.length > 0 ? gyroReadings[gyroReadings.length - 1].y : 0}</Text>
+                <Text style={styles.reading}>z: {gyroReadings.length > 0 ? gyroReadings[gyroReadings.length - 1].z : 0}</Text>
+            </View>
 
-            <Text>Accelerometer</Text>
-            <Text>x: {accReadings.length > 0 ? accReadings[accReadings.length - 1].x : 0}</Text>
-            <Text>y: {accReadings.length > 0 ? accReadings[accReadings.length - 1].y : 0}</Text>
-            <Text>z: {accReadings.length > 0 ? accReadings[accReadings.length - 1].z : 0}</Text>
+            <Text style={styles.title}>Accelerometer</Text>
+            <View style={styles.readingsContainer}>
+                <Text style={styles.reading}>x: {accReadings.length > 0 ? accReadings[accReadings.length - 1].x : 0}</Text>
+                <Text style={styles.reading}>y: {accReadings.length > 0 ? accReadings[accReadings.length - 1].y : 0}</Text>
+                <Text style={styles.reading}>z: {accReadings.length > 0 ? accReadings[accReadings.length - 1].z : 0}</Text>
+            </View>
             
             <Button title="Send Data" onPress={sendDataToServer} />
-            
+            {prediction !== "" && <Text style={styles.prediction}>{prediction}</Text>} 
+
             <StatusBar style="auto" />
         </View>
     )
@@ -70,6 +79,26 @@ export default function Sensors() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff'
+        backgroundColor: '#f0f0f0',
+        padding: 20,
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    title: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 10
+    },
+    readingsContainer: {
+        marginBottom: 20
+    },
+    reading: {
+        fontSize: 16,
+        marginBottom: 5
+    },
+    prediction: {
+        fontSize: 18,
+        marginTop: 20,
+        fontWeight: 'bold'
     }
 });

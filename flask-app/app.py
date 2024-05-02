@@ -20,8 +20,7 @@ motion = {0: 'downstairs', 1: 'jogging', 2: 'sitting', 3: 'standing', 4: 'upstai
 # wlk: walking
 # jog: jogging
 
-def parse_data(data_string):
-    data = json.loads(data_string)
+def parse_data(data):
     # print(data)
     if data is None:
         return jsonify({"error": "No JSON data received"}), 400
@@ -30,6 +29,7 @@ def parse_data(data_string):
     gyro_data = data["gyroData"]
     # print("acc:\n",len(acc_data))
     # print("gyro:\n",len(gyro_data))
+
     # Combine historical accelerometer and gyroscope data
     combined_data = []
     for acc, gyro in zip(acc_data, gyro_data):
@@ -44,7 +44,7 @@ def parse_data(data_string):
     # Convert the combined data to a 2D numpy array
     np_data = np.array(combined_data)
     print(np_data.shape)
-    
+
     return np_data
 
 @app.route('/', methods=['GET'])
@@ -53,13 +53,14 @@ def test():
 
 @app.route('/', methods=['POST'])
 def predict():
-    data = request.form['data']
+    data = request.json
     np_data = parse_data(data)
-    
+    print(data)
+    print(np_data.shape)
     # Assuming np_data is in the desired format: [acc1, gyro1, acc2, gyro2, ...]
     prediction = motion[np.argmax(model.predict(np.array([np_data])))]
     
-    return prediction
+    return jsonify({"prediction":prediction}) ,200
 
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0')
+    app.run(debug=True, host='0.0.0.0')
